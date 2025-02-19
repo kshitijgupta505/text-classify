@@ -1,15 +1,14 @@
-# Let's build an AI Agent that can use Tools in NEXT.JS 15! (LangChain, Clerk, Convex, TS, IBM)
+# Let's build an AI Agent that can use Tools in NEXT.JS 15! (LangChain, Clerk, Convex, TS)
 
-A sophisticated AI chat application built with Next.js, featuring real-time conversations, advanced prompt caching, and intelligent tool orchestration powered by LangChain and Claude 3.5 Sonnet.
+A sophisticated AI classification application built with Next.js, featuring real-time classifications and intelligent tool orchestration powered by LangChain.
 
 ## Before You Get Started
 
 1. [Sign up for a Free Clerk account](https://go.clerk.com/R9MPryz)
-2. [Sign up for IBM's FREE WxFlows tool](https://ibm.biz/wxflows-sonny)
 
 ## Features
 
-- 🤖 Advanced AI chat interface with Claude 3.5 Sonnet
+- 🤖 Advanced AI chat interface with In-House Model
 - 🎨 Modern and responsive UI with Tailwind CSS
 - 🔐 Authentication with Clerk
 - 💾 Real-time data storage with Convex
@@ -19,24 +18,15 @@ A sophisticated AI chat application built with Next.js, featuring real-time conv
 - 🧠 Prompt caching for optimized token usage
 - 🔧 Intelligent tool orchestration with LangGraph
 - 🔄 Real-time updates and tool execution feedback
-- 📚 Integration with various data sources via wxflows
 
 ## Advanced Features
 
 ### AI and Prompt Management
 
-- **Prompt Caching**: Optimized token usage with Anthropic's caching feature
+- **Prompt Caching**: Optimized token usage with LangChain
 - **Context Window**: Efficient 4096 token context management
 - **Tool-Augmented Responses**: Enhanced AI capabilities with custom tools
 - **Context-Aware Conversations**: Intelligent conversation management
-
-### Tool Integration
-
-- **wxflows Integration**:
-  - Quick integration of various data sources
-  - Support for YouTube transcripts
-  - Google Books API integration
-  - Custom data source tooling
 
 ### LangChain & LangGraph Features
 
