@@ -16,14 +16,73 @@ const formatMessage = (content: string): string => {
   // Then handle newlines
   content = content.replace(/\\n/g, "\n");
 
-  // Remove only the markers but keep the content between them
-  content = content.replace(/---START---\n?/g, "").replace(/\n?---END---/g, "");
+  // Extract content between markers exactly once
+  let formattedContent = content;
+  
+  const startMarker = "---START---";
+  const endMarker = "---END---";
+  
+  // Only process contents with markers
+  if (content.includes(startMarker) && content.includes(endMarker)) {
+    // Process each terminal output section
+    const sections = [];
+    let remainingContent = content;
+    
+    while (remainingContent.includes(startMarker) && remainingContent.includes(endMarker)) {
+      // Find the start and end of the current section
+      const startIndex = remainingContent.indexOf(startMarker);
+      const endIndex = remainingContent.indexOf(endMarker, startIndex) + endMarker.length;
+      
+      if (startIndex !== -1 && endIndex !== -1) {
+        // Add text before the current section
+        if (startIndex > 0) {
+          sections.push(remainingContent.substring(0, startIndex));
+        }
+        
+        // Extract the section content without markers
+        const sectionContent = remainingContent.substring(
+          startIndex + startMarker.length, 
+          endIndex - endMarker.length
+        ).trim();
+        
+        sections.push(sectionContent);
+        
+        // Update remaining content
+        remainingContent = remainingContent.substring(endIndex);
+      } else {
+        // If something went wrong, just add the remaining content
+        sections.push(remainingContent);
+        break;
+      }
+    }
+    
+    // Add any remaining content after the last section
+    if (remainingContent) {
+      sections.push(remainingContent);
+    }
+    
+    formattedContent = sections.join('');
+  }
 
-  // Trim any extra whitespace that might be left
-  return content.trim();
+  // Trim any extra whitespace
+  return formattedContent.trim();
 };
 
-export function MessageBubble({ content, isUser }: MessageBubbleProps) {
+// Function to get readable model name
+const getModelName = (modelId: string): string => {
+  switch (modelId) {
+    case 'default':
+      return 'Spam Classifier';
+    case 'sentiment':
+      return 'Sentiment Analysis';
+    case 'summarizer':
+      return 'Text Summarizer';
+    default:
+      return modelId;
+  }
+};
+
+export function MessageBubble({ content, isUser = false }: MessageBubbleProps) {
   const { user } = useUser();
 
   return (

@@ -7,25 +7,9 @@ import { ChatRequestBody, StreamMessageType } from "@/lib/types";
 import WelcomeMessage from "@/components/WelcomeMessage";
 import { createSSEParser } from "@/lib/SSEParser";
 import { MessageBubble } from "@/components/MessageBubble";
-import { ArrowRight, ChevronDown } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { getConvexClient } from "@/lib/convex";
 import { api } from "@/convex/_generated/api";
-
-// Added model selector components
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-// Model options
-const MODEL_OPTIONS = [
-  { id: "default", name: "Spam Classifier" },
-  { id: "sentiment", name: "Sentiment Analysis" },
-  { id: "summarizer", name: "Text Summarizer" },
-];
 
 interface ChatInterfaceProps {
   chatId: Id<"chats">;
@@ -40,11 +24,9 @@ export default function ChatInterface({
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [streamedResponse, setStreamedResponse] = useState("");
-  const [selectedModel, setSelectedModel] = useState("default");
   const [currentTool, setCurrentTool] = useState<{
     name: string;
     input: unknown;
-    pending: boolean;
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -134,8 +116,6 @@ export default function ChatInterface({
 
     // Track complete response for saving to database
     let fullResponse = "";
-    // Track tools in progress to handle tool output correctly
-    let toolsInProgress = new Map();
 
     try {
       // Prepare chat history and new message for API
@@ -146,15 +126,10 @@ export default function ChatInterface({
         })),
         newMessage: trimmedInput,
         chatId,
-        // Include the selected model
-        modelId: selectedModel,
       };
 
-      // Get the appropriate API endpoint based on the selected model
-      const apiEndpoint = "/api/chat/stream";
-
       // Initialize SSE connection
-      const response = await fetch(apiEndpoint, {
+      const response = await fetch("/api/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(requestBody),
@@ -186,42 +161,37 @@ export default function ChatInterface({
             case StreamMessageType.ToolStart:
               // Handle start of tool execution (e.g. API calls, file operations)
               if ("tool" in message) {
-                // Store tool info but don't display it yet - wait for the ToolEnd event
-                toolsInProgress.set(message.tool, {
-                  name: message.tool,
-                  input: message.input
-                });
-                
-                // Update current tool state for UI
                 setCurrentTool({
                   name: message.tool,
                   input: message.input,
-                  pending: true
                 });
-                
-                // Don't add anything to fullResponse here
+                fullResponse += formatTerminalOutput(
+                  message.tool,
+                  message.input,
+                  "Processing..."
+                );
+                setStreamedResponse(fullResponse);
               }
               break;
 
             case StreamMessageType.ToolEnd:
               // Handle completion of tool execution
-              if ("tool" in message) {
-                const toolInfo = toolsInProgress.get(message.tool);
-                
-                if (toolInfo) {
-                  // Add the complete tool output to the response
-                  fullResponse += formatTerminalOutput(
-                    message.tool,
-                    toolInfo.input,
-                    message.output
-                  );
-                  
+              if ("tool" in message && currentTool) {
+                // Replace the "Processing..." message with actual output
+                const lastTerminalIndex = fullResponse.lastIndexOf(
+                  '<div class="bg-[#1e1e1e]'
+                );
+                if (lastTerminalIndex !== -1) {
+                  fullResponse =
+                    fullResponse.substring(0, lastTerminalIndex) +
+                    formatTerminalOutput(
+                      message.tool,
+                      currentTool.input,
+                      message.output
+                    );
                   setStreamedResponse(fullResponse);
-                  toolsInProgress.delete(message.tool);
-                  
-                  // Clear current tool state
-                  setCurrentTool(null);
                 }
+                setCurrentTool(null);
               }
               break;
 
@@ -325,27 +295,6 @@ export default function ChatInterface({
       <footer className="border-t bg-white p-4">
         <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative">
           <div className="relative flex items-center">
-            {/* Model Selector */}
-            <div className="mr-2">
-              <Select 
-                value={selectedModel} 
-                onValueChange={setSelectedModel}
-                disabled={isLoading}
-              >
-                <SelectTrigger className="h-12 w-[140px] bg-gray-50 border border-gray-200 focus:ring-2 focus:ring-blue-500">
-                  <SelectValue placeholder="Select model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MODEL_OPTIONS.map((model) => (
-                    <SelectItem key={model.id} value={model.id}>
-                      {model.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {/* Message Input */}
             <textarea
               ref={textareaRef}
               value={input}

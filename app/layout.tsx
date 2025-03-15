@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Chat App",
-  description: "A modern chat application built with Next.js and Convex",
+  title: "Text Classification App",
+  description: "A modern text classification application built with Next.js, Convex and in-house Model",
 };
 
 export default function RootLayout({

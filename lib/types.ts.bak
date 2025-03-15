@@ -64,11 +64,7 @@ export type StreamMessage =
   | ToolEndMessage;
 
 export interface ChatRequestBody {
-  messages: {
-    role: string;
-    content: string;
-  }[];
+  messages: Message[];
   newMessage: string;
   chatId: Id<"chats">;
-  modelId?: string;
 }

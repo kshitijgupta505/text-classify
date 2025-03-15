@@ -25,56 +25,20 @@ function sendSSEMessage(
 }
 
 // Function to convert numeric class labels to human-readable text
-function translateClassLabel(label: string, modelId: string): string {
-  // Different models have different class labels
-  if (modelId === "default") {
-    // Spam classifier
-    const classMap: Record<string, string> = {
-      "1": "SPAM",
-      "0": "Legitimate",
-    };
-    return classMap[label] || label;
-  } else if (modelId === "sentiment") {
-    // Sentiment analysis
-    const classMap: Record<string, string> = {
-      "1": "Positive",
-      "0": "Neutral",
-      "-1": "Negative",
-    };
-    return classMap[label] || label;
-  } else {
-    // Default fallback
-    return label;
-  }
-}
-
-// Get the appropriate Flask API endpoint based on the model
-function getApiEndpoint(modelId: string): string {
-  const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
+function translateClassLabel(label: string): string {
+  // Map of class labels to human-readable names
+  const classMap: Record<string, string> = {
+    "1": "SPAM",
+    "0": "Legitimate",
+    // Add more mappings as needed
+  };
   
-  switch (modelId) {
-    case "sentiment":
-      return `${FLASK_API_URL}/sentiment`;
-    case "summarizer":
-      return `${FLASK_API_URL}/summarize`;
-    case "default":
-    default:
-      return `${FLASK_API_URL}/predict`;
-  }
+  // Return the mapped value or the original if no mapping exists
+  return classMap[label] || label;
 }
 
-// Get the appropriate tool name for the model
-function getToolName(modelId: string): string {
-  switch (modelId) {
-    case "sentiment":
-      return "sentiment-analysis";
-    case "summarizer":
-      return "text-summarizer";
-    case "default":
-    default:
-      return "classification";
-  }
-}
+// Flask API endpoint
+const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
 
 export async function POST(req: Request) {
   try {
@@ -83,8 +47,8 @@ export async function POST(req: Request) {
       return new Response("Unauthorized", { status: 401 });
     }
 
-    const { messages, newMessage, chatId, modelId = "default" } =
-      (await req.json()) as ChatRequestBody & { modelId?: string };
+    const { messages, newMessage, chatId } =
+      (await req.json()) as ChatRequestBody;
     const convex = getConvexClient();
 
     // Create stream with larger queue strategy for better performance
@@ -112,20 +76,15 @@ export async function POST(req: Request) {
         });
 
         try {
-          const toolName = getToolName(modelId);
-          
           // Begin prediction process
           await sendSSEMessage(writer, {
             type: StreamMessageType.ToolStart,
-            tool: toolName,
+            tool: "text_classification",
             input: newMessage,
           });
 
-          // Get the appropriate API endpoint
-          const apiEndpoint = getApiEndpoint(modelId);
-
           // Make request to Flask API
-          const flaskResponse = await fetch(apiEndpoint, {
+          const flaskResponse = await fetch(`${FLASK_API_URL}/predict`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -139,56 +98,41 @@ export async function POST(req: Request) {
 
           // Get prediction result
           const predictionResult = await flaskResponse.json();
+
+          // Translate class name before sending tool end event
+          const originalClass = predictionResult.class;
+          const translatedClass = translateClassLabel(originalClass);
           
-          // Process result based on model type
-          let toolOutput = "";
-          let responseText = "";
-          
-          if (modelId === "default") {
-            // Spam classifier
-            const originalClass = predictionResult.class;
-            const translatedClass = translateClassLabel(originalClass, modelId);
-            
-            toolOutput = translatedClass;
-            responseText = `Your text was classified as "${translatedClass}" with ${(predictionResult.confidence * 100).toFixed(2)}% confidence.`;
-          } 
-          else if (modelId === "sentiment") {
-            // Sentiment analysis
-            const sentiment = predictionResult.sentiment;
-            const translatedSentiment = translateClassLabel(sentiment, modelId);
-            
-            toolOutput = translatedSentiment;
-            responseText = `Your text has a "${translatedSentiment}" sentiment with ${(predictionResult.confidence * 100).toFixed(2)}% confidence.`;
-          }
-          else if (modelId === "summarizer") {
-            // Text summarizer
-            toolOutput = predictionResult.summary;
-            responseText = `Summary: ${predictionResult.summary}`;
-          }
-          
-          // Send tool end event with the processed output
+          // Update the class name in the prediction result
+          const enhancedResult = {
+            ...predictionResult,
+            class: translatedClass,
+            originalClass: originalClass
+          };
+
+          // Send tool end event with enhanced prediction results
           await sendSSEMessage(writer, {
             type: StreamMessageType.ToolEnd,
-            tool: toolName,
-            output: toolOutput,
+            tool: "text_classification",
+            output: enhancedResult,
           });
+
+          // Generate a response based on the translated prediction
+          const confidence = predictionResult.confidence;
           
-          // Stream the response character by character
-          const characters = responseText.split('');
+          // Create a human-readable response with the translated class name
+          const responseText = `Your text was classified as "${translatedClass}" with ${(confidence * 100).toFixed(2)}% confidence.`;
           
-          for (let i = 0; i < characters.length; i++) {
+          // Stream the response token by token (simulating streaming)
+          const tokens = responseText.split(/(\s+)/);
+          for (const token of tokens) {
             await sendSSEMessage(writer, {
               type: StreamMessageType.Token,
-              token: characters[i],
+              token: token,
             });
             
-            // Variable delay to simulate natural typing
-            const isPunctuation = ['.', ',', '!', '?', ':'].includes(characters[i]);
-            const delay = isPunctuation ? 
-              Math.random() * 40 + 30 : // 30-70ms for punctuation
-              Math.random() * 20 + 15;  // 15-35ms for regular characters
-              
-            await new Promise(resolve => setTimeout(resolve, delay));
+            // Small delay to simulate streaming
+            await new Promise(resolve => setTimeout(resolve, 10));
           }
 
           // Send completion message

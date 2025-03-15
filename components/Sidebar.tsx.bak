@@ -28,26 +28,6 @@ function ChatRow({
     closeMobileNav();
   };
 
-  // Function to clean message content from terminal output formatting
-  const cleanMessageContent = (content: string) => {
-    // Remove the terminal output markers and HTML content
-    if (content.includes("---START---") && content.includes("---END---")) {
-      // For cases where there might be text before or after the terminal output
-      const beforeTerminal = content.split("---START---")[0].trim();
-      const afterTerminal = content.split("---END---")[1]?.trim() || "";
-      
-      if (beforeTerminal || afterTerminal) {
-        return beforeTerminal || afterTerminal;
-      }
-      
-      // If no text before/after, just return a generic message
-      return "Generated output";
-    }
-    
-    // Remove other HTML tags that might be in the content
-    return content.replace(/<[^>]*>/g, "");
-  };
-
   return (
     <div
       className="group rounded-xl border border-gray-200/30 bg-white/50 backdrop-blur-sm hover:bg-white/80 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
@@ -59,7 +39,7 @@ function ChatRow({
             {lastMessage ? (
               <>
                 {lastMessage.role === "user" ? "You: " : "AI: "}
-                {cleanMessageContent(lastMessage.content.replace(/\\n/g, "\n"))}
+                {lastMessage.content.replace(/\\n/g, "\n")}
               </>
             ) : (
               <span className="text-gray-400">New conversation</span>
