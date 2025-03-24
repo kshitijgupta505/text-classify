@@ -9,6 +9,7 @@ import TimeAgo from "react-timeago";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { useNavigation } from "@/lib/context/navigation";
+import { useUser } from "@clerk/nextjs";
 
 function ChatRow({
   chat,
@@ -90,6 +91,9 @@ function ChatRow({
 export default function Sidebar() {
   const router = useRouter();
   const { isMobileNavOpen, closeMobileNav } = useNavigation();
+  const { user } = useUser();
+
+  const isAdmin = user?.id === 'user_2snp0RkHIZ820xckK1xRJVorBRD' 
 
   const chats = useQuery(api.chats.listChats);
   const createChat = useMutation(api.chats.createChat);
@@ -110,7 +114,12 @@ export default function Sidebar() {
   };
 
   const handleDashboardClick = async () => {
-    router.push("/dashboard")
+    // check if we're currently logged in as Admin
+    if (isAdmin) {
+      router.push("/adminDashboard");
+    } else {
+      router.push("/dashboard");
+    }
   };
 
   return (
@@ -149,7 +158,7 @@ export default function Sidebar() {
             onClick={handleDashboardClick}
             className="w-full bg-white hover:bg-gray-50 text-gray-700 border border-gray-200/50 shadow-sm hover:shadow transition-all duration-200"
           >
-            <DashboardIcon className="mr-2 h-4 w-4" /> Dashboard
+            <DashboardIcon className="mr-2 h-4 w-4" /> {isAdmin ? "Admin Dashboard" : "Dashboard"}
           </Button>
         </div>
       </div>

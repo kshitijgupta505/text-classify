@@ -1,0 +1,37 @@
+import Image from "next/image";
+import {defineField, defineType} from 'sanity'
+import { ChartBar } from "../../components/chart-bar";
+
+export const dashboardType = defineType({
+  name: 'dashboard',
+  title: 'Global Dashboard',
+  type: 'document',
+  fields: [
+    {
+      name: 'dashboard',
+      title: 'User Dashboard',
+      type: 'array',
+      of: [
+        {
+          name: 'dashboard',
+          title: 'Dashboard',
+          type: 'object',
+          components: {
+            preview: ChartBar,
+          },
+        }
+      ],
+//      fields: {
+//        type: 'string',
+//        name: 'myString',
+//        title: 'My string',
+//      },
+    },
+  ],
+
+  preview: {
+    select: {
+      title: 'title',
+    }
+  },
+});

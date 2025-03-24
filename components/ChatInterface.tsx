@@ -25,6 +25,7 @@ const MODEL_OPTIONS = [
   { id: "default", name: "Spam Classifier" },
   { id: "sentiment", name: "Sentiment Analysis" },
   { id: "summarizer", name: "Text Summarizer" },
+  { id: "claude", name: "Claude" },
 ];
 
 interface ChatInterfaceProps {
