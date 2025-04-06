@@ -20,34 +20,127 @@ export const dashboardType = defineType({
       title: 'Dashboard Description',
       type: 'text'
     }),
-    // Simple field to display dashboard items
+    // Create separate fields for each chart type
     defineField({
-      name: 'dashboardItems',
-      title: 'Dashboard Items',
+      name: 'barCharts',
+      title: 'Bar Charts',
       type: 'array',
       of: [
         {
           type: 'object',
-          name: 'dashboardItem',
-          title: 'Dashboard Item',
+          name: 'barChart',
+          title: 'Bar Chart',
           fields: [
             defineField({
-              name: 'itemTitle',
-              title: 'Item Title',
+              name: 'title',
+              title: 'Chart Title',
               type: 'string'
+            }),
+            defineField({
+              name: 'data',
+              title: 'Chart Data',
+              type: 'array',
+              of: [{type: 'number'}]
             })
           ],
-          // Use the static chart component for preview
-          components: {
-            preview: ChartBar,
-            preview: ChartLine,
-            preview: ChartArea,
-            preview: ChartPie
-          },
           preview: {
             select: {
-              title: 'itemTitle'
-            }
+              title: 'title'
+            },
+            component: ChartBar
+          }
+        }
+      ]
+    }),
+    defineField({
+      name: 'lineCharts',
+      title: 'Line Charts',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'lineChart',
+          title: 'Line Chart',
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Chart Title',
+              type: 'string'
+            }),
+            defineField({
+              name: 'data',
+              title: 'Chart Data',
+              type: 'array',
+              of: [{type: 'number'}]
+            })
+          ],
+          preview: {
+            select: {
+              title: 'title'
+            },
+            component: ChartLine
+          }
+        }
+      ]
+    }),
+    defineField({
+      name: 'areaCharts',
+      title: 'Area Charts',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'areaChart',
+          title: 'Area Chart',
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Chart Title',
+              type: 'string'
+            }),
+            defineField({
+              name: 'data',
+              title: 'Chart Data',
+              type: 'array',
+              of: [{type: 'number'}]
+            })
+          ],
+          preview: {
+            select: {
+              title: 'title'
+            },
+            component: ChartArea
+          }
+        }
+      ]
+    }),
+    defineField({
+      name: 'pieCharts',
+      title: 'Pie Charts',
+      type: 'array',
+      of: [
+        {
+          type: 'object',
+          name: 'pieChart',
+          title: 'Pie Chart',
+          fields: [
+            defineField({
+              name: 'title',
+              title: 'Chart Title',
+              type: 'string'
+            }),
+            defineField({
+              name: 'data',
+              title: 'Chart Data',
+              type: 'array',
+              of: [{type: 'number'}]
+            })
+          ],
+          preview: {
+            select: {
+              title: 'title'
+            },
+            component: ChartPie
           }
         }
       ]

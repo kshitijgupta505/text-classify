@@ -1,4 +1,5 @@
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import { SanityUserSync } from "./SanityUserSync";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
@@ -25,6 +26,7 @@ export default function LandingPage() {
 
         {/* CTA Button */}
         <SignedIn>
+          <SanityUserSync />
           <Link href="/dashboard">
             <button className="group relative inline-flex items-center justify-center px-8 py-3.5 text-base font-medium text-white bg-gradient-to-r from-gray-900 to-gray-800 rounded-full hover:from-gray-800 hover:to-gray-700 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
               Get Started
@@ -35,6 +37,7 @@ export default function LandingPage() {
         </SignedIn>
 
         <SignedOut>
+          <SanityUserSync />
           <SignInButton
             mode="modal"
             fallbackRedirectUrl={"/dashboard"}

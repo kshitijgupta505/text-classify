@@ -32,8 +32,9 @@ function translateClassLabel(label: string, modelId: string): string {
   if (modelId === "default") {
     // Spam classifier
     const classMap: Record<string, string> = {
-      "1": "SPAM",
-      "0": "Legitimate",
+      "Ham": "Legitimate",
+      "Spam": "Spam",
+      "Phishing": "Phishing",
     };
     return classMap[label] || label;
   } else if (modelId === "sentiment") {
@@ -52,7 +53,7 @@ function translateClassLabel(label: string, modelId: string): string {
 
 // Get the appropriate Flask API endpoint based on the model
 function getApiEndpoint(modelId: string): string {
-  const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
+  const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5001";
   const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
   
   switch (modelId) {
@@ -126,6 +127,8 @@ export async function POST(req: Request) {
           new HumanMessage(newMessage),
         ];
 
+        let responseText = "";
+
         try {
           if (modelId != "claude") {
             const toolName = getToolName(modelId);
@@ -158,7 +161,7 @@ export async function POST(req: Request) {
             
             // Process result based on model type
             let toolOutput = "";
-            let responseText = "";
+            let classificationType = "";
             
             if (modelId === "default") {
               // Spam classifier
@@ -167,6 +170,18 @@ export async function POST(req: Request) {
               
               toolOutput = translatedClass;
               responseText = `Your text was classified as "${translatedClass}" with ${(predictionResult.confidence * 100).toFixed(2)}% confidence.`;
+              
+              // Set the classification type for database saving
+              classificationType = translatedClass.toLowerCase();
+              
+              // Save the classification to database
+              await convex.mutation(api.classifications.create, {
+                userId,
+                type: classificationType,
+                confidence: predictionResult.confidence,
+                text: "You're classifying text given to you as 'Spam', 'Phishing' and 'Legitimate' only. You just need to give the reason as to why it could be so, nothing else. " + newMessage,
+                timestamp: Date.now(),
+              });
             } 
             else if (modelId === "sentiment") {
               // Sentiment analysis
@@ -206,39 +221,38 @@ export async function POST(req: Request) {
                 
               await new Promise(resolve => setTimeout(resolve, delay));
             }
-          }
+          
+            const eventStream = await submitQuestion(langChainMessages, chatId);
 
-          const eventStream = await submitQuestion(langChainMessages, chatId);
-
-          for await (const event of eventStream) {
-          // console.log("🔄 Event:", event);
-
-            if (event.event === "on_chat_model_stream") {
-              const token = event.data.chunk;
-              if (token) {
-                // Access the text property from the AIMessageChunk
-                const text = token.content.at(0)?.["text"];
-                if (text) {
-                  await sendSSEMessage(writer, {
-                    type: StreamMessageType.Token,
-                    token: text,
-                  });
+            for await (const event of eventStream) {
+              if (event.event === "on_chat_model_stream") {
+                const token = event.data.chunk;
+                if (token) {
+                  // Access the text property from the AIMessageChunk
+                  const text = token.content.at(0)?.["text"];
+                  if (text) {
+                    responseText += text;
+                    await sendSSEMessage(writer, {
+                      type: StreamMessageType.Token,
+                      token: text,
+                    });
+                  }
                 }
-              }
-            } else if (event.event === "on_tool_start") {
-              await sendSSEMessage(writer, {
-              type: StreamMessageType.ToolStart,
-              tool: event.name || "unknown",
-              input: event.data.input,
-              });
-            } else if (event.event === "on_tool_end") {
-              const toolMessage = new ToolMessage(event.data.output);
+              } else if (event.event === "on_tool_start") {
+                await sendSSEMessage(writer, {
+                  type: StreamMessageType.ToolStart,
+                  tool: event.name || "unknown",
+                  input: event.data.input,
+                });
+              } else if (event.event === "on_tool_end") {
+                const toolMessage = new ToolMessage(event.data.output);
 
-              await sendSSEMessage(writer, {
-                type: StreamMessageType.ToolEnd,
-                tool: toolMessage.lc_kwargs.name || "unknown",
-                output: event.data.output,
-              });
+                await sendSSEMessage(writer, {
+                  type: StreamMessageType.ToolEnd,
+                  tool: toolMessage.lc_kwargs.name || "unknown",
+                  output: event.data.output,
+                });
+              }
             }
           }
 
@@ -248,7 +262,7 @@ export async function POST(req: Request) {
           // Store the generated response in Convex
           await convex.mutation(api.messages.send, {
             chatId,
-            content: responseText,
+            content: responseText,  
           });
           
         } catch (streamError) {

@@ -14,4 +14,13 @@ export default defineSchema({
     role: v.union(v.literal("user"), v.literal("assistant")),
     createdAt: v.number(),
   }).index("by_chat", ["chatId"]),
+
+  classifications: defineTable({
+    userId: v.string(),
+    type: v.string(),
+    confidence: v.number(),
+    text: v.string(),
+    timestamp: v.number(),
+  })
+  .index("by_user_and_date", ["userId", "timestamp"]),
 });

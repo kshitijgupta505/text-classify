@@ -1,6 +1,6 @@
 "use client"
 import { TrendingUp } from "lucide-react"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, ResponsiveContainer } from "recharts"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   type ChartConfig,
@@ -15,9 +15,10 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useAuth } from "@clerk/clerk-react";
 
-const initialData = Array(7).fill(null).map((_, i) => {
+// Note: Default data with 5 days instead of 7
+const initialData = Array(5).fill(null).map((_, i) => {
   const date = new Date();
-  date.setDate(date.getDate() - (6 - i));
+  date.setDate(date.getDate() - (4 - i));
   return {
     date: date.toISOString().split('T')[0],
     legitimate: 0,
@@ -46,32 +47,42 @@ export function ChartBar() {
   const [trendPercentage, setTrendPercentage] = useState(0);
   const [totalStats, setTotalStats] = useState({ legitimate: 0, spam: 0, phishing: 0 });
   
+  // Use Convex's useQuery hook to fetch data directly with 5 days
   const classificationData = useQuery(
     api.classifications.getRecentStats, 
-    userId ? { userId, days: 7 } : "skip"
+    userId ? { userId, days: 5 } : "skip"
   );
   
+  // If data is loading or undefined, show loading state
   const isLoading = classificationData === undefined;
+  // If data is null (error) or skip, show error
   const error = classificationData === null ? "Failed to load classification data" : null;
   
+  // Use empty data when loading or error
   const chartData = (!isLoading && !error && classificationData) ? classificationData : initialData;
 
   useEffect(() => {
+    // Only calculate stats when we have real data
     if (classificationData && Array.isArray(classificationData) && classificationData.length > 0) {
+      // Calculate trend based on legitimate email detection
       if (classificationData.length >= 2) {
         const lastDay = classificationData[classificationData.length - 1].legitimate;
         const previousDay = classificationData[classificationData.length - 2].legitimate;
         
+        // Avoid division by zero
         if (previousDay !== 0) {
           const percentChange = ((lastDay - previousDay) / previousDay) * 100;
-          setTrendPercentage(Math.round(percentChange * 10) / 10);
+          setTrendPercentage(Math.round(percentChange * 10) / 10); // Round to 1 decimal place
         } else if (lastDay > 0) {
+          // If previous day was 0 and today has values, show 100% increase
           setTrendPercentage(100);
         } else {
+          // If both days are 0, no change
           setTrendPercentage(0);
         }
       }
       
+      // Calculate totals
       const totals = classificationData.reduce((acc, day) => {
         acc.legitimate += day.legitimate;
         acc.spam += day.spam;
@@ -83,11 +94,13 @@ export function ChartBar() {
     }
   }, [classificationData]);
 
+  // Format date for x-axis
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
+  // Generate status message for the footer
   const getStatusMessage = () => {
     if (trendPercentage > 0) {
       return (
@@ -105,67 +118,85 @@ export function ChartBar() {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle>Email Classification Results</CardTitle>
-        <CardDescription>Last 3 days classification breakdown</CardDescription>
+        <CardDescription>Last 5 days classification breakdown</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="flex items-center justify-center h-[300px]">
+          <div className="flex items-center justify-center h-64">
             <p>Loading classification data...</p>
           </div>
         ) : error ? (
-          <div className="flex items-center justify-center h-[300px] text-red-500">
+          <div className="flex items-center justify-center h-64 text-red-500">
             <p>{error}</p>
           </div>
         ) : (
-          <ChartContainer config={chartConfig}>
-            <BarChart 
-              data={chartData}
-              margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
-              barGap={4}
-            >
-              <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
-              <XAxis 
-                dataKey="date" 
-                tickLine={false} 
-                tickMargin={10} 
-                axisLine={false}
-                tickFormatter={formatDate}
-              />
-              <YAxis 
-                axisLine={false}
-                tickLine={false}
-                tickMargin={10}
-              />
-              <ChartTooltip 
-                cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}  
-                content={<ChartTooltipContent />} 
-              />
-              <ChartLegend content={<ChartLegendContent />} />
-              <Bar 
-                dataKey="legitimate" 
-                stackId="stack"
-                fill="var(--color-legitimate)" 
-                radius={[0, 0, 0, 0]} 
-                name="Legitimate" 
-              />
-              <Bar 
-                dataKey="spam" 
-                stackId="stack"
-                fill="var(--color-spam)" 
-                radius={[0, 0, 0, 0]} 
-                name="Spam" 
-              />
-              <Bar 
-                dataKey="phishing" 
-                stackId="stack"
-                fill="var(--color-phishing)" 
-                radius={[4, 4, 0, 0]} 
-                name="Phishing" 
-              />
-            </BarChart>
+          <ChartContainer config={chartConfig} className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart 
+                data={chartData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                onMouseLeave={() => {
+                  // Find and remove any stuck tooltips
+                  const tooltips = document.querySelectorAll('.recharts-tooltip-wrapper');
+                  tooltips.forEach(tooltip => {
+                    if (tooltip instanceof HTMLElement) {
+                      tooltip.style.visibility = 'hidden';
+                    }
+                  });
+                }}
+              >
+                <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
+                <XAxis 
+                  dataKey="date" 
+                  tickLine={false} 
+                  tickMargin={10} 
+                  axisLine={false}
+                  tickFormatter={formatDate}
+                />
+                <YAxis 
+                  axisLine={false}
+                  tickLine={false}
+                  tickMargin={10}
+                />
+                <ChartTooltip 
+                  cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }}  
+                  content={<ChartTooltipContent />} 
+                  isAnimationActive={false}
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                {/* Stacked bar configuration: all bars have the same stackId */}
+                <Bar 
+                  dataKey="legitimate" 
+                  stackId="stack"
+                  fill="var(--color-legitimate, #ff6b6b)" 
+                  radius={[0, 0, 0, 0]} 
+                  name="Legitimate" 
+                  isAnimationActive={false}
+                  barSize={32}
+                />
+                <Bar 
+                  dataKey="spam" 
+                  stackId="stack"
+                  fill="var(--color-spam, #4ecdc4)" 
+                  radius={[0, 0, 0, 0]} 
+                  name="Spam" 
+                  isAnimationActive={false}
+                  barSize={32}
+                />
+                <Bar 
+                  dataKey="phishing" 
+                  stackId="stack"
+                  fill="var(--color-phishing, #1a535c)" 
+                  radius={[4, 4, 0, 0]} 
+                  name="Phishing" 
+                  isAnimationActive={false}
+                  barSize={32}
+                />
+              </BarChart>
+            </ResponsiveContainer>
           </ChartContainer>
         )}
       </CardContent>
