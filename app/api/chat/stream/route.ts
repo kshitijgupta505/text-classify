@@ -53,27 +53,27 @@ function translateClassLabel(label: string, modelId: string): string {
 
 // Get the appropriate Flask API endpoint based on the model
 function getApiEndpoint(modelId: string): string {
-  const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5001";
-  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY
+  const FLASK_API_URL = process.env.FLASK_API_URL || "http://localhost:5000";
+  const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
   
   switch (modelId) {
-    case "sentiment":
-      return `${FLASK_API_URL}/sentiment`;
+    case "fake_review":
+      return `${FLASK_API_URL}/predict_review`;
     case "summarizer":
       return `${FLASK_API_URL}/summarize`;
     case "claude":
       return "claude";
     case "default":
     default:
-      return `${FLASK_API_URL}/predict`;
+      return `${FLASK_API_URL}/predict_email`;
   }
 }
 
 // Get the appropriate tool name for the model
 function getToolName(modelId: string): string {
   switch (modelId) {
-    case "sentiment":
-      return "sentiment-analysis";
+    case "fake_review":
+      return "review-analysis";
     case "summarizer":
       return "text-summarizer";
     case "default":

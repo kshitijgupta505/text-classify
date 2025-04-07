@@ -23,7 +23,7 @@ import {
 // Model options
 const MODEL_OPTIONS = [
   { id: "default", name: "Spam Classifier" },
-  { id: "sentiment", name: "Sentiment Analysis" },
+  { id: "fake_review", name: "Fake Review Classifier" },
   { id: "summarizer", name: "Text Summarizer" },
   { id: "claude", name: "Claude" },
 ];

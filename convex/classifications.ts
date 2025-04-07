@@ -80,17 +80,6 @@ interface StatsByDate {
 // Define your database schema for clarity
 type ClassificationType = "legitimate" | "spam" | "phishing";
 
-// Define the structure of your classifications table
-interface ClassificationDoc {
-  userId: string;
-  type: ClassificationType;
-  confidence: number;
-  text: string;
-  timestamp: number;
-  metadata: Record<string, any>;
-  createdAt: number;
-}
-
 // Create a new classification
 export const create = mutation({
   args: {
@@ -102,8 +91,7 @@ export const create = mutation({
     ),
     confidence: v.number(),
     text: v.string(),
-    timestamp: v.optional(v.number()),
-    metadata: v.optional(v.object({}))
+    timestamp: v.optional(v.number())
   },
   handler: async (ctx, args) => {
     log("INFO", "CREATE", {
@@ -117,16 +105,14 @@ export const create = mutation({
       // Use current timestamp if not provided
       const timestamp = args.timestamp || Date.now();
       
-      // Insert the classification into the database
+      // Insert only the fields that are in the schema
       const id = await ctx.db.insert("classifications", {
         userId: args.userId,
         type: args.type,
         confidence: args.confidence,
         text: args.text,
-        timestamp,
-        metadata: args.metadata || {},
-        createdAt: Date.now()
-      } as ClassificationDoc);
+        timestamp
+      });
       
       log("INFO", "SUCCESS", {
         operation: "create",
