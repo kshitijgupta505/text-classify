@@ -1,10 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone', ← remove or comment this line
+  // output: 'standalone', ← optional: you can leave this commented
   experimental: {
-    serverActions: true,
-    serverComponentsExternalPackages: ['@prisma/client'],
-    topLevelAwait: true,
+    serverActions: {}, // fix: must be object, not true
+    serverExternalPackages: ['@prisma/client'], // renamed from deprecated key
+    topLevelAwait: true, // still OK
   },
   eslint: {
     ignoreDuringBuilds: true,
