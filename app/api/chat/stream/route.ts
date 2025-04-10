@@ -12,7 +12,7 @@ import {
   SSE_LINE_DELIMITER,
 } from "@/lib/types";
 
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 function sendSSEMessage(
   writer: WritableStreamDefaultWriter<Uint8Array>,
