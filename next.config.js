@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // output: 'standalone', ← optional: you can leave this commented
+  output: 'standalone',
   experimental: {
     serverActions: {}, // fix: must be object, not true
     serverExternalPackages: ['@prisma/client'], // renamed from deprecated key
